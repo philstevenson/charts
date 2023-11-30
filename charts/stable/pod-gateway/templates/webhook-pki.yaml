@@ -24,7 +24,7 @@ metadata:
     {{- include "common.labels" . | nindent 4 }}
 spec:
   secretName: {{ include "pod-gateway.rootCACertificate" . }}
-  duration: 43800h # 5y
+  duration: 43800h0m0s # 5y
   issuerRef:
     name: {{ include "pod-gateway.selfSignedIssuer" . }}
     kind: Issuer
@@ -57,7 +57,7 @@ metadata:
     {{- include "common.labels" . | nindent 4 }}
 spec:
   secretName: {{ include "pod-gateway.servingCertificate" . }}
-  duration: 8760h # 1y
+  duration: 8760h0m0s # 1y
   issuerRef:
     name: {{ include "pod-gateway.rootCAIssuer" . }}
     kind: Issuer
