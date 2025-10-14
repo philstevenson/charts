@@ -65,6 +65,44 @@ node:
   # -- Node resources
   resources: {}
 
+# Multi-node configuration (optional). If `nodes` is defined, it supersedes the single `node` block.
+# Example:
+# nodes:
+#   - name: cpu
+#     enabled: true
+#     replicas: 2
+#     image:
+#       repository: haveagitgat/tdarr_node
+#       tag: 2.00.10
+#     env:
+#       PUID: "1000"
+#       PGID: "1000"
+#       TZ: UTC
+#       nodeName: cpu
+#     resources:
+#       limits:
+#         cpu: "2000m"
+#         memory: 2Gi
+#       requests:
+#         cpu: "500m"
+#         memory: 512Mi
+#     nodeSelector: {}
+#     tolerations: []
+#     affinity: {}
+#     extraEnv: []   # list of name/value pairs
+#     extraVolumeMounts: []
+#   - name: gpu
+#     enabled: true
+#     replicas: 1
+#     image:
+#       repository: haveagitgat/tdarr_node
+#       tag: 2.00.10
+#     env:
+#       nodeName: gpu
+#     resources:
+#       limits:
+#         nvidia.com/gpu: 1
+
 # -- Configure persistence settings for the chart under this key.
 # @default -- See below
 persistence:

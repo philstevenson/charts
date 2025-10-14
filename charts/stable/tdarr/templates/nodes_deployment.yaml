@@ -1,0 +1,101 @@
+{{- /* Tdarr multi-node deployments */ -}}
+{{- $root := . -}}
+{{- $nodes := .Values.nodes -}}
+{{- if and $nodes (gt (len $nodes) 0) -}}
+{{- range $i, $n := $nodes }}
+---
+apiVersion: apps/v1
+kind: {{ $n.deployKind | default "Deployment" }}
+metadata:
+  name: {{ include "common.names.fullname" $root }}-node-{{ $n.name | default (printf "%d" $i) }}
+  labels:
+    app.kubernetes.io/name: {{ include "common.names.fullname" $root }}-node-{{ $n.name | default (printf "%d" $i) }}
+    helm.sh/chart: {{ include "common.names.chart" $root }}
+    app.kubernetes.io/instance: {{ $root.Release.Name }}
+    app.kubernetes.io/managed-by: {{ $root.Release.Service }}
+    app.kubernetes.io/component: tdarr-node
+    tdarr.node/name: {{ $n.name | default (printf "%d" $i) }}
+spec:
+  replicas: {{ $n.replicas | default 1 }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "common.names.fullname" $root }}-node-{{ $n.name | default (printf "%d" $i) }}
+      app.kubernetes.io/instance: {{ $root.Release.Name }}
+      app.kubernetes.io/component: tdarr-node
+      tdarr.node/name: {{ $n.name | default (printf "%d" $i) }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "common.names.fullname" $root }}-node-{{ $n.name | default (printf "%d" $i) }}
+        app.kubernetes.io/instance: {{ $root.Release.Name }}
+        app.kubernetes.io/component: tdarr-node
+        tdarr.node/name: {{ $n.name | default (printf "%d" $i) }}
+    spec:
+      {{- with $n.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $n.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $n.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: tdarr-node
+          image: "{{ default "haveagitgat/tdarr_node" $n.image.repository }}:{{ default $root.Chart.AppVersion $n.image.tag }}"
+          imagePullPolicy: {{ default "IfNotPresent" $n.image.pullPolicy }}
+          env:
+            - name: TZ
+              value: {{ default "UTC" $root.Values.env.TZ }}
+            - name: nodeID
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: serverURL
+              value: http://{{ include "common.names.fullname" $root }}:{{ $root.Values.service.main.ports.server.port }}
+            - name: ffmpegPath
+              value: {{ default "" $root.Values.env.ffmpegPath }}
+            - name: PUID
+              value: {{ ($root.Values.env.PUID | quote) }}
+            - name: PGID
+              value: {{ ($root.Values.env.PGID | quote) }}
+          ports:
+            - name: http
+              containerPort: {{ $root.Values.service.main.ports.http.port }}
+              protocol: TCP
+          {{- with $n.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          {{- if $n.existingPersistentVolumeClaims }}
+          volumeMounts:
+            {{- range $n.existingPersistentVolumeClaims }}
+            - name: {{ .name }}
+              mountPath: {{ .mountPath | quote }}
+            {{- end }}
+          {{- end }}
+      {{- if $n.existingPersistentVolumeClaims }}
+      volumes:
+        {{- range $n.existingPersistentVolumeClaims }}
+        - name: {{ .name }}
+          persistentVolumeClaim:
+            claimName: {{ .name }}
+        {{- end }}
+      {{- end }}
+      {{- with $n.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $n.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $n.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}
+{{- end }}

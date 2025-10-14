@@ -14,7 +14,7 @@ additionalContainers:
       - name: nodeID
         value: {{ default "UTC" .Values.node.id }}
       - name: serverIP
-        value: "localhost"
+        value: {{ include "common.names.fullname" . }}
       - name: serverPort
         value: "{{ .Values.service.main.ports.server.port }}"
       - name: ffmpegPath

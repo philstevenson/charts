@@ -16,9 +16,9 @@ Tdarr is a self hosted web-app for automating media library transcode/remux mana
 
 ## Dependencies
 
-| Repository | Name | Version |
-|------------|------|---------|
-| https://library-charts.k8s-at-home.com | common | 4.5.2 |
+| Repository                             | Name   | Version |
+| -------------------------------------- | ------ | ------- |
+| https://library-charts.k8s-at-home.com | common | 4.5.2   |
 
 ## TL;DR
 
@@ -73,32 +73,92 @@ N/A
 
 **Important**: When deploying an application Helm chart you can add more values from our common library chart [here](https://github.com/k8s-at-home/library-charts/tree/main/charts/stable/common)
 
-| Key | Type | Default | Description |
-|-----|------|---------|-------------|
-| env | object | See below | environment variables. See [image docs](https://hub.docker.com/r/haveagitgat/tdarr) for more details. |
-| env.PGID | string | `"1000"` | Set the container group id |
-| env.PUID | string | `"1000"` | Set the container user id |
-| env.TZ | string | `"UTC"` | Set the container timezone |
-| env.ffmpegPath | string | `""` | Allow override for the pre-compiled tdarr ffmpeg binary |
-| env.serverIP | string | `"0.0.0.0"` | tdarr server binding address |
-| env.serverPort | string | `"{{ .Values.service.main.ports.server.port }}"` | tdarr server listening port |
-| env.webUIPort | string | `"{{ .Values.service.main.ports.http.port }}"` | tdarr web UI listening port (same as Service port) |
-| image.pullPolicy | string | `"IfNotPresent"` | image pull policy |
-| image.repository | string | `"haveagitgat/tdarr"` | image repository |
-| image.tag | string | chart.appVersion | image tag |
-| ingress.main | object | See values.yaml | Enable and configure ingress settings for the chart under this key. |
-| node.enabled | bool | `true` | Deploy a tdarr node. |
-| node.id | string | `"node"` | Node ID |
-| node.image.pullPolicy | string | `"IfNotPresent"` | image pull policy |
-| node.image.repository | string | `"haveagitgat/tdarr_node"` | image repository |
-| node.image.tag | string | `"2.00.10"` | image tag |
-| node.resources | object | `{}` | Node resources |
-| persistence | object | See below | Configure persistence settings for the chart under this key. |
-| persistence.config | object | See values.yaml | Volume used for configuration |
-| persistence.data | object | See values.yaml | Volume used for tdarr server database |
-| persistence.media | object | See values.yaml | Volume used for media libraries |
-| persistence.shared | object | See values.yaml | Volume used for shared storage. e.g. emptydir transcode |
-| service | object | See values.yaml | Configures service settings for the chart. |
+| Key                   | Type   | Default                                          | Description                                                                                           |
+| --------------------- | ------ | ------------------------------------------------ | ----------------------------------------------------------------------------------------------------- |
+| env                   | object | See below                                        | environment variables. See [image docs](https://hub.docker.com/r/haveagitgat/tdarr) for more details. |
+| env.PGID              | string | `"1000"`                                         | Set the container group id                                                                            |
+| env.PUID              | string | `"1000"`                                         | Set the container user id                                                                             |
+| env.TZ                | string | `"UTC"`                                          | Set the container timezone                                                                            |
+| env.ffmpegPath        | string | `""`                                             | Allow override for the pre-compiled tdarr ffmpeg binary                                               |
+| env.serverIP          | string | `"0.0.0.0"`                                      | tdarr server binding address                                                                          |
+| env.serverPort        | string | `"{{ .Values.service.main.ports.server.port }}"` | tdarr server listening port                                                                           |
+| env.webUIPort         | string | `"{{ .Values.service.main.ports.http.port }}"`   | tdarr web UI listening port (same as Service port)                                                    |
+| image.pullPolicy      | string | `"IfNotPresent"`                                 | image pull policy                                                                                     |
+| image.repository      | string | `"haveagitgat/tdarr"`                            | image repository                                                                                      |
+| image.tag             | string | chart.appVersion                                 | image tag                                                                                             |
+| ingress.main          | object | See values.yaml                                  | Enable and configure ingress settings for the chart under this key.                                   |
+| node.enabled          | bool   | `true`                                           | Deploy a tdarr node.                                                                                  |
+| node.id               | string | `"node"`                                         | Node ID                                                                                               |
+| node.image.pullPolicy | string | `"IfNotPresent"`                                 | image pull policy                                                                                     |
+| node.image.repository | string | `"haveagitgat/tdarr_node"`                       | image repository                                                                                      |
+| node.image.tag        | string | `"2.00.10"`                                      | image tag                                                                                             |
+| node.resources        | object | `{}`                                             | Node resources                                                                                        |
+| persistence           | object | See below                                        | Configure persistence settings for the chart under this key.                                          |
+| persistence.config    | object | See values.yaml                                  | Volume used for configuration                                                                         |
+| persistence.data      | object | See values.yaml                                  | Volume used for tdarr server database                                                                 |
+| persistence.media     | object | See values.yaml                                  | Volume used for media libraries                                                                       |
+| persistence.shared    | object | See values.yaml                                  | Volume used for shared storage. e.g. emptydir transcode                                               |
+| service               | object | See values.yaml                                  | Configures service settings for the chart.                                                            |
+
+## Multi-node Tdarr Nodes (Experimental)
+
+This chart now supports deploying multiple Tdarr node types (e.g. CPU, GPU) by defining a `nodes` array in `values.yaml`.
+
+If `nodes` is defined, it supersedes the legacy single `node` block. If `nodes` is omitted, the chart behaves as before and uses the single `node` configuration.
+
+Example configuration:
+
+```yaml
+nodes:
+  - name: cpu
+    enabled: true
+    replicas: 2
+    image:
+      repository: haveagitgat/tdarr_node
+      tag: 2.00.10
+    env:
+      TZ: UTC
+      PUID: "1000"
+      PGID: "1000"
+      nodeName: cpu
+    resources:
+      requests:
+        cpu: 500m
+        memory: 512Mi
+      limits:
+        cpu: 2000m
+        memory: 2Gi
+  - name: gpu
+    enabled: true
+    replicas: 1
+    image:
+      repository: haveagitgat/tdarr_node
+      tag: 2.00.10
+    env:
+      nodeName: gpu
+    resources:
+      limits:
+        nvidia.com/gpu: 1
+    extraEnv:
+      - name: NVIDIA_VISIBLE_DEVICES
+        value: all
+```
+
+Optional per-node fields:
+
+| Field                                     | Description                                                         |
+| ----------------------------------------- | ------------------------------------------------------------------- |
+| `name`                                    | Logical name used in deployment name/labels.                        |
+| `enabled`                                 | Enable/disable this node entry. Defaults to true if omitted.        |
+| `replicas`                                | Number of pod replicas for this node type. Default 1.               |
+| `image`                                   | Override image repo/tag/pullPolicy for this node type.              |
+| `env`                                     | Map of environment variables merged over global `env`.              |
+| `extraEnv`                                | List of `{name, value}` pairs appended after merged env.            |
+| `resources`                               | Standard Kubernetes resource requests/limits.                       |
+| `nodeSelector`, `tolerations`, `affinity` | Scheduling constraints.                                             |
+| `extraVolumeMounts`                       | Additional volume mounts (list items with `name`/`mountPath` etc.). |
+
+Persistence volumes defined under `persistence.*` are mounted into every node by default. Use `extraVolumeMounts` for node-specific mounts.
 
 ## Changelog
 
